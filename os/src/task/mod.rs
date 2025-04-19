@@ -21,7 +21,7 @@ use crate::loader::{get_num_app, init_app_cx};
 use crate::sync::UPSafeCell;
 use lazy_static::*;
 use switch::__switch;
-pub use task::{TaskControlBlock, TaskStatus};
+pub use task::{TaskControlBlock, TaskStatus, TaskInfo};
 
 pub use context::TaskContext;
 
@@ -48,7 +48,7 @@ pub struct TaskManagerInner {
     /// id of current `Running` task
     current_task: usize,
 
-    task_counter: [isize; MAX_APP_NUM]
+    sys_call_counter: [TaskInfo; MAX_APP_NUM]
 }
 
 lazy_static! {
@@ -69,7 +69,7 @@ lazy_static! {
                 UPSafeCell::new(TaskManagerInner {
                     tasks,
                     current_task: 0,
-                    task_counter: [0; MAX_APP_NUM]
+                    sys_call_counter: [TaskInfo::new(); MAX_APP_NUM]
                 })
             },
         }
@@ -142,20 +142,15 @@ impl TaskManager {
     }
 
     fn add_one_task_sys_call(&self, id: usize) {
-        if id < MAX_APP_NUM {
-            let mut inner = self.inner.exclusive_access();
-            inner.task_counter[id] += 1;
-        }
+        let mut inner = self.inner.exclusive_access();
+        let index = inner.current_task;
+        inner.sys_call_counter[index].sys_call_counter[id] += 1;
     }
 
     fn get_task_count(&self, id: usize) -> isize {
-        if id < MAX_APP_NUM {
-            let inner = self.inner.exclusive_access();
-            inner.task_counter[id]
-        }
-        else {
-            -1
-        }
+        let inner = self.inner.exclusive_access();
+        let index = inner.current_task;
+        inner.sys_call_counter[index].sys_call_counter[id]
     }
 }
 

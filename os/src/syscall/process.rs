@@ -55,7 +55,7 @@ pub fn sys_trace(trace_request: usize, id: usize, data: usize) -> isize {
         }
     }
     else if trace_request == 2 {
-        get_task_count(id) as isize
+        get_task_count(id)
     }
     else {
         -1

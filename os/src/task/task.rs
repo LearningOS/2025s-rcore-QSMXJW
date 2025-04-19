@@ -23,3 +23,18 @@ pub enum TaskStatus {
     /// exited
     Exited,
 }
+
+
+/// The info of task
+#[derive(Copy, Clone)]
+pub struct  TaskInfo {
+    /// sys_call_counter
+    pub sys_call_counter: [isize; 1024]
+}
+
+impl TaskInfo {
+    /// 构造函数
+    pub fn new() -> Self {
+        TaskInfo { sys_call_counter: [0; 1024] }
+    }
+}
