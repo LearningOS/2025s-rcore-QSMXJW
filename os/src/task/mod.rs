@@ -14,6 +14,8 @@ mod switch;
 #[allow(clippy::module_inception)]
 mod task;
 
+use core::usize;
+
 use crate::config::MAX_APP_NUM;
 use crate::loader::{get_num_app, init_app_cx};
 use crate::sync::UPSafeCell;
@@ -45,6 +47,8 @@ pub struct TaskManagerInner {
     tasks: [TaskControlBlock; MAX_APP_NUM],
     /// id of current `Running` task
     current_task: usize,
+
+    task_counter: [isize; MAX_APP_NUM]
 }
 
 lazy_static! {
@@ -65,6 +69,7 @@ lazy_static! {
                 UPSafeCell::new(TaskManagerInner {
                     tasks,
                     current_task: 0,
+                    task_counter: [0; MAX_APP_NUM]
                 })
             },
         }
@@ -135,6 +140,23 @@ impl TaskManager {
             panic!("All applications completed!");
         }
     }
+
+    fn add_one_task_sys_call(&self, id: usize) {
+        if id < MAX_APP_NUM {
+            let mut inner = self.inner.exclusive_access();
+            inner.task_counter[id] += 1;
+        }
+    }
+
+    fn get_task_count(&self, id: usize) -> isize {
+        if id < MAX_APP_NUM {
+            let inner = self.inner.exclusive_access();
+            inner.task_counter[id]
+        }
+        else {
+            -1
+        }
+    }
 }
 
 /// Run the first task in task list.
@@ -156,6 +178,16 @@ fn mark_current_suspended() {
 /// Change the status of current `Running` task into `Exited`.
 fn mark_current_exited() {
     TASK_MANAGER.mark_current_exited();
+}
+
+/// 给任务的系统调用次数加一
+pub fn add_one_task_sys_call_counter(id: usize) {
+    TASK_MANAGER.add_one_task_sys_call(id);
+}
+
+/// 获取任务的系统调用次数
+pub fn get_task_count(id: usize) -> isize {
+    TASK_MANAGER.get_task_count(id)
 }
 
 /// Suspend the current 'Running' task and run the next task in task list.
